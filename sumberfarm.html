@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<title>Sumber Farm Monitoring</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<style>
+body{
+  font-family: Arial, sans-serif;
+  background: linear-gradient(#e8f5e9,#ffffff);
+  margin:0;
+  padding:10px;
+}
+header{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  background:#2e7d32;
+  color:white;
+  padding:10px;
+  border-radius:10px;
+}
+header img{
+  width:45px;
+}
+.card{
+  background:white;
+  padding:10px;
+  border-radius:10px;
+  margin-top:10px;
+  box-shadow:0 2px 6px rgba(0,0,0,.1);
+}
+input,button{
+  width:100%;
+  padding:8px;
+  margin-top:5px;
+}
+button{
+  background:#2e7d32;
+  color:white;
+  border:none;
+  border-radius:5px;
+}
+.warning{
+  background:#ffebee;
+  color:#c62828;
+  padding:8px;
+  border-radius:5px;
+  margin-top:5px;
+}
+table{
+  width:100%;
+  border-collapse:collapse;
+  margin-top:5px;
+}
+td,th{
+  border:1px solid #ccc;
+  padding:5px;
+  text-align:center;
+}
+.edit{background:#fbc02d;}
+.hapus{background:#d32f2f;}
+</style>
+</head>
+
+<body>
+
+<header>
+  <img src="logo-sumberfarm.png">
+  <h3>Monitoring Kandang Ayam<br>Sumber Farm</h3>
+</header>
+
+<!-- PRODUKSI -->
+<div class="card">
+<h4>Produksi Telur</h4>
+<input type="date" id="tgl">
+<input type="number" id="k1" placeholder="Kandang 1">
+<input type="number" id="k2" placeholder="Kandang 2">
+<input type="number" id="k3" placeholder="Kandang 3">
+<input type="number" id="k4" placeholder="Kandang 4">
+<button onclick="simpanProduksi()">Simpan Produksi</button>
+<div id="peringatan"></div>
+<table id="tabelProduksi"></table>
+</div>
+
+<!-- PENJUALAN -->
+<div class="card">
+<h4>Penjualan Telur</h4>
+<input type="date" id="tglJual">
+<input type="number" id="kg" placeholder="Kg">
+<input type="number" id="harga" placeholder="Harga / Kg">
+<button onclick="simpanJual()">Simpan Penjualan</button>
+<table id="tabelJual"></table>
+</div>
+
+<script>
+let produksi = JSON.parse(localStorage.getItem("produksi")) || [];
+let penjualan = JSON.parse(localStorage.getItem("penjualan")) || [];
+let editIndex = null;
+let editJual = null;
+
+function simpanProduksi(){
+  let d = {
+    tgl: tgl.value,
+    k1:+k1.value||0,
+    k2:+k2.value||0,
+    k3:+k3.value||0,
+    k4:+k4.value||0
+  };
+  d.total = d.k1+d.k2+d.k3+d.k4;
+
+  if(editIndex!==null){
+    produksi[editIndex]=d;
+    editIndex=null;
+  } else {
+    produksi.push(d);
+  }
+  localStorage.setItem("produksi",JSON.stringify(produksi));
+  tampilProduksi();
+}
+
+function tampilProduksi(){
+  let t = "<tr><th>Tgl</th><th>Total</th><th>Aksi</th></tr>";
+  let warn="";
+  produksi.forEach((d,i)=>{
+    if(i>0 && d.total < produksi[i-1].total){
+      warn="⚠ Produksi menurun pada "+d.tgl;
+    }
+    t+=`<tr>
+      <td>${d.tgl}</td>
+      <td>${d.total}</td>
+      <td>
+        <button class="edit" onclick="editProd(${i})">Edit</button>
+        <button class="hapus" onclick="hapusProd(${i})">Hapus</button>
+      </td>
+    </tr>`;
+  });
+  tabelProduksi.innerHTML=t;
+  peringatan.innerHTML= warn ? `<div class="warning">${warn}</div>`:"";
+}
+
+function editProd(i){
+  let d=produksi[i];
+  tgl.value=d.tgl;k1.value=d.k1;k2.value=d.k2;k3.value=d.k3;k4.value=d.k4;
+  editIndex=i;
+}
+function hapusProd(i){
+  produksi.splice(i,1);
+  localStorage.setItem("produksi",JSON.stringify(produksi));
+  tampilProduksi();
+}
+
+function simpanJual(){
+  let j={
+    tgl: tglJual.value,
+    kg:+kg.value||0,
+    harga:+harga.value||0
+  };
+  j.total=j.kg*j.harga;
+
+  if(editJual!==null){
+    penjualan[editJual]=j;
+    editJual=null;
+  } else {
+    penjualan.push(j);
+  }
+  localStorage.setItem("penjualan",JSON.stringify(penjualan));
+  tampilJual();
+}
+
+function tampilJual(){
+  let t="<tr><th>Tgl</th><th>Kg</th><th>Total</th><th>Aksi</th></tr>";
+  penjualan.forEach((j,i)=>{
+    t+=`<tr>
+      <td>${j.tgl}</td>
+      <td>${j.kg}</td>
+      <td>Rp ${j.total.toLocaleString()}</td>
+      <td>
+        <button class="edit" onclick="editJ(${i})">Edit</button>
+        <button class="hapus" onclick="hapusJ(${i})">Hapus</button>
+      </td>
+    </tr>`;
+  });
+  tabelJual.innerHTML=t;
+}
+function editJ(i){
+  let j=penjualan[i];
+  tglJual.value=j.tgl;kg.value=j.kg;harga.value=j.harga;
+  editJual=i;
+}
+function hapusJ(i){
+  penjualan.splice(i,1);
+  localStorage.setItem("penjualan",JSON.stringify(penjualan));
+  tampilJual();
+}
+
+tampilProduksi();
+tampilJual();
+</script>
+
+</body>
+  </html>
